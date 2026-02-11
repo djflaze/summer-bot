@@ -1,120 +1,65 @@
 import os
 import random
-from datetime import date, time
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import datetime
+from telegram import Bot
+from telegram.ext import Updater, CommandHandler
 
-TOKEN = os.getenv("TOKEN")  # токен берётся из переменных окружения
+TOKEN = os.getenv("TOKEN")
 
-PHRASES = [
-"🔥 Сегодня ты главный герой, не НПС.",
-"☕ Если не знаешь что делать — попей воды.",
-"🚀 Маленький шаг > идеальный план.",
-"💀 Прокрастинация опять хотела победить… но нет.",
-"🌞 Солнце встало — значит и ты сможешь.",
-"😎 Спокойно. Ты шаришь больше, чем думаешь.",
-"📈 +1 день к прогрессу.",
-"🧠 Мозг устал? Перезагрузи чайком.",
-"💪 Делай красиво или не делай вообще.",
-"✨ Вселенная сегодня на твоей стороне.",
-"🗿 Каменное лицо, но внутри огонь.",
-"🚶 Главное — двигаться.",
-"🌱 Ты растёшь. Даже если медленно.",
-"📚 Один маленький апгрейд сегодня.",
-"🎯 Фокус. Ты не случайный персонаж.",
-"🛠 Чини жизнь постепенно.",
-"😴 Устал? Отдохни. Не сдавайся.",
-"⚡ Сегодня день без нытья.",
-"🎮 Жизнь — это прокачка.",
-"📊 Прогресс > настроение.",
-"💡 Гениальные идеи приходят в движении.",
-"🔥 Дисциплина спасает.",
-"🚫 Сомнениям сегодня вход запрещён.",
-"🌊 Всё временно. Даже стресс.",
-"🏆 Ты уже выигрываешь.",
-"🎧 Включай режим концентрации.",
-"📦 Разгрузи голову — запиши мысли.",
-"🌙 Спокойствие — твой бафф.",
-"🧱 Строим характер по кирпичу.",
-"🚀 Летим медленно, но уверенно.",
-"🕶 Ты не обязан всем нравиться.",
-"📉 Плохой день ≠ плохая жизнь.",
-"🎯 Микро-победа сегодня.",
-"🔥 Меньше слов — больше дела.",
-"🧘 Дыши. Ты жив. Уже круто.",
-"📅 Новый день — новая попытка.",
-"🎲 Сегодня шанс выпал тебе.",
-"🗿 Хладнокровие — твой стиль.",
-"💸 Энергия дороже денег.",
-"📵 Убери отвлекающие штуки.",
-"🎉 Ты всё ещё в игре.",
-"⚔️ Битва с ленью началась.",
-"🌟 Потенциал активирован.",
-"🧠 Не перегружай систему.",
-"🚶‍♂️ Маленький шаг сейчас.",
-"🔥 Сегодня без автопилота.",
-"🎯 Делай хотя бы 1 полезное дело.",
-"💬 Сам с собой по-доброму.",
-"📦 Закрой хотя бы одну задачу.",
-"🚀 Режим продуктивности ON.",
-"🌞 Ты ближе к лету, чем вчера.",
-"🎮 Левел ап неизбежен.",
-"🗺 Двигайся по своему маршруту.",
-"💡 Даже 10% — это лучше нуля.",
-"⚡ Зарядись и вперёд.",
-"🎧 Музыка + фокус = сила.",
-"🔥 Не тормози без причины.",
-"🌊 Всё пройдёт. И это тоже.",
-"🛠 Сегодня чиним будущее.",
-"📈 +1% каждый день.",
-"🧱 Стена строится кирпичами.",
-"🚫 Паника отменяется.",
-"🏁 Ты всё ещё бежишь гонку.",
-"😎 Спокойно, легенда.",
-"🌟 Потихоньку, но мощно.",
-"🔥 Сегодня твой вайб — продуктивность."
+phrases = [
+    "🌞 Лето всё ближе. Терпи, воин.",
+    "🔥 Минус ещё один день до жары!",
+    "😎 Лето подкрадывается...",
+    "🌴 Скоро будем жить на чиле.",
+    "🍉 Лето почти на районе.",
+    "☀️ Тепло уже в пути!",
+    "🏖 Песочек ждёт.",
+    "🌊 Море скоро увидимся.",
+    "🍹 Готовь очки и вайб.",
+    "💛 Ещё чуть-чуть до счастья.",
+    "🚀 Лето не за горами!",
+    "🌺 Врываемся в летний режим.",
+    "😏 Лето уже пакует чемоданы.",
+    "🍦 Скоро сезон мороженки.",
+    "🎧 Летний плейлист уже готов?",
+    "🌅 Закаты станут красивее.",
+    "🏝 Вайб будет 100/10.",
+    "🌻 Время тепла приближается.",
+    "🔥 Солнце заряжается.",
+    "😌 Потерпи, скоро июнь."
 ]
 
-def days_to_summer():
-    today = date.today()
-    summer = date(today.year, 6, 1)
+def days_until_summer():
+    today = datetime.date.today()
+    year = today.year
+    summer = datetime.date(year, 6, 1)
     if today > summer:
-        summer = date(today.year + 1, 6, 1)
+        summer = datetime.date(year + 1, 6, 1)
     return (summer - today).days
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    context.application.bot_data["chat_id"] = chat_id
+def send_daily_message(context):
+    chat_id = os.getenv("CHAT_ID")
+    days = days_until_summer()
+    phrase = random.choice(phrases)
+    text = f"🌴 До лета осталось: {days} дней\n\n{phrase}"
+    context.bot.send_message(chat_id=chat_id, text=text)
 
-    await update.message.reply_text(
-        "🤖 Подписка активирована.\nТеперь я буду писать тебе каждый день 😎"
-    )
-
-async def daily_message(context: ContextTypes.DEFAULT_TYPE):
-    chat_id = context.application.bot_data.get("chat_id")
-    if not chat_id:
-        return
-
-    phrase = random.choice(PHRASES)
-    days = days_to_summer()
-
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text=f"{phrase}\n\n🌞 До лета осталось {days} дней."
-    )
+def start(update, context):
+    days = days_until_summer()
+    phrase = random.choice(phrases)
+    update.message.reply_text(f"🌴 До лета осталось: {days} дней\n\n{phrase}")
 
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
 
-    app.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("start", start))
 
-    app.job_queue.run_daily(
-        daily_message,
-        time=time(hour=9, minute=0)
-    )
+    job_queue = updater.job_queue
+    job_queue.run_daily(send_daily_message, time=datetime.time(hour=9, minute=0))
 
-    print("Bot is running 🚀")
-    app.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     main()
